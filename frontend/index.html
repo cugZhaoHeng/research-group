@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课题组信息管理系统</title>
+  <link rel="stylesheet" href="https://www.jeasyui.com/easyui/themes/default/easyui.css">
+  <link rel="stylesheet" href="https://www.jeasyui.com/easyui/themes/icon.css">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <section class="brand-panel">
+      <div>
+        <p class="eyebrow">Research Group</p>
+        <h1>课题组信息管理系统</h1>
+        <p class="subtitle">集中管理论文、获奖、组会、团建和比赛信息。当前版本先开放账号注册与登录。</p>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <div id="authTabs" class="easyui-tabs" data-options="fit:true,border:false">
+        <div title="登录" class="tab-body">
+          <form id="loginForm" class="form-grid">
+            <input class="easyui-textbox" name="username" label="用户名" labelPosition="top" data-options="required:true">
+            <input class="easyui-passwordbox" name="password" label="密码" labelPosition="top" data-options="required:true">
+            <a href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-ok'" onclick="login()">登录</a>
+          </form>
+        </div>
+        <div title="注册" class="tab-body">
+          <form id="registerForm" class="form-grid">
+            <input class="easyui-textbox" name="username" label="用户名" labelPosition="top" data-options="required:true,validType:'length[3,50]'">
+            <input class="easyui-textbox" name="full_name" label="姓名" labelPosition="top">
+            <input class="easyui-textbox" name="email" label="邮箱" labelPosition="top" data-options="required:true,validType:'email'">
+            <input class="easyui-passwordbox" name="password" label="密码" labelPosition="top" data-options="required:true,validType:'length[6,128]'">
+            <a href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-save'" onclick="registerUser()">注册并登录</a>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="homeDialog" class="easyui-dialog" title="登录成功" data-options="closed:true,modal:true,width:420,height:260">
+    <div class="user-card">
+      <h2 id="welcomeTitle">欢迎</h2>
+      <p id="welcomeMeta"></p>
+      <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="logout()">退出登录</a>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://www.jeasyui.com/easyui/jquery.easyui.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

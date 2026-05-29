@@ -1,0 +1,111 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+  color: #1f2937;
+  background: #edf2f7;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(360px, 460px);
+  min-height: 100vh;
+}
+
+.brand-panel {
+  display: flex;
+  align-items: center;
+  padding: 64px;
+  color: #fff;
+  background:
+    linear-gradient(rgba(17, 24, 39, 0.6), rgba(17, 24, 39, 0.58)),
+    url("https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1400&q=80") center/cover;
+}
+
+.eyebrow {
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1 {
+  max-width: 620px;
+  margin: 0;
+  font-size: 48px;
+  line-height: 1.18;
+}
+
+.subtitle {
+  max-width: 560px;
+  margin: 24px 0 0;
+  font-size: 18px;
+  line-height: 1.8;
+}
+
+.auth-panel {
+  padding: 56px 40px;
+  background: #ffffff;
+}
+
+.tab-body {
+  padding: 28px 8px 8px;
+}
+
+.form-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.form-grid .textbox,
+.form-grid .passwordbox {
+  width: 100%;
+}
+
+.primary-action {
+  width: 100%;
+  height: 40px;
+}
+
+.user-card {
+  padding: 24px;
+  text-align: center;
+}
+
+.user-card h2 {
+  margin: 16px 0 8px;
+  font-size: 24px;
+}
+
+.user-card p {
+  margin: 0 0 24px;
+  color: #4b5563;
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-panel {
+    min-height: 36vh;
+    padding: 36px 24px;
+  }
+
+  h1 {
+    font-size: 34px;
+  }
+
+  .subtitle {
+    font-size: 16px;
+  }
+
+  .auth-panel {
+    padding: 28px 20px 40px;
+  }
+}
