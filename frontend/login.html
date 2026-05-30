@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 - 课题组信息管理系统</title>
+  <link rel="stylesheet" href="https://www.jeasyui.com/easyui/themes/default/easyui.css">
+  <link rel="stylesheet" href="https://www.jeasyui.com/easyui/themes/icon.css">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="page-login">
+  <div class="login-shell">
+    <section class="brand-panel">
+      <div>
+        <p class="eyebrow">Research Group</p>
+        <h1>课题组信息管理系统</h1>
+        <p class="subtitle">统一记录成员信息、论文发表、获奖、组会、团建和比赛活动。</p>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <div id="authTabs" class="easyui-tabs" data-options="border:false">
+        <div title="登录" class="tab-body">
+          <form id="loginForm" class="form-grid">
+            <input class="easyui-textbox" name="username" label="用户名" labelPosition="top" data-options="required:true">
+            <input class="easyui-passwordbox" name="password" label="密码" labelPosition="top" data-options="required:true">
+            <a href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-ok'" onclick="login()">登录</a>
+          </form>
+        </div>
+        <div title="注册" class="tab-body">
+          <form id="registerForm" class="form-grid">
+            <input class="easyui-textbox" name="username" label="用户名" labelPosition="top" data-options="required:true,validType:'length[3,50]'">
+            <input class="easyui-passwordbox" name="password" label="密码" labelPosition="top" data-options="required:true,validType:'length[6,128]'">
+            <input class="easyui-textbox" name="full_name" label="真实姓名" labelPosition="top" data-options="required:true">
+            <input class="easyui-textbox" name="telephone" label="电话" labelPosition="top">
+            <input class="easyui-textbox" name="email" label="邮箱" labelPosition="top" data-options="required:true,validType:'email'">
+            <input class="easyui-textbox" name="province" label="省份" labelPosition="top">
+            <input class="easyui-textbox" name="city" label="城市" labelPosition="top">
+            <input class="easyui-datebox" name="birthday" label="生日" labelPosition="top" data-options="editable:false">
+            <input class="easyui-numberspinner" name="enrollment_year" label="入学年份" labelPosition="top" data-options="min:1980,max:2100">
+            <input class="easyui-textbox" name="undergraduate_school" label="本科院校" labelPosition="top">
+            <input class="easyui-textbox" name="master_school" label="硕士院校" labelPosition="top">
+            <input class="easyui-textbox" name="doctoral_school" label="博士院校" labelPosition="top">
+            <input class="easyui-textbox" name="bio" label="个人说明" labelPosition="top" data-options="multiline:true,height:72">
+            <a href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-save'" onclick="registerUser()">注册并登录</a>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://www.jeasyui.com/easyui/jquery.easyui.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -8,44 +8,122 @@
   <link rel="stylesheet" href="https://www.jeasyui.com/easyui/themes/icon.css">
   <link rel="stylesheet" href="./styles.css">
 </head>
-<body>
-  <div class="app-shell">
-    <section class="brand-panel">
-      <div>
-        <p class="eyebrow">Research Group</p>
-        <h1>课题组信息管理系统</h1>
-        <p class="subtitle">集中管理论文、获奖、组会、团建和比赛信息。当前版本先开放账号注册与登录。</p>
+<body class="easyui-layout page-home">
+  <div data-options="region:'north',border:false" class="topbar">
+    <div>
+      <strong>课题组信息管理系统</strong>
+      <span id="topbarUser">加载中...</span>
+    </div>
+    <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="logout()">退出登录</a>
+  </div>
+
+  <div data-options="region:'west',split:true,title:'功能菜单'" class="sidebar">
+    <ul id="sideMenu" class="easyui-tree">
+      <li>
+        <span>个人中心</span>
+        <ul>
+          <li data-options="attributes:{view:'profile'}">个人信息</li>
+        </ul>
+      </li>
+      <li>
+        <span>成果管理</span>
+        <ul>
+          <li data-options="attributes:{view:'papers'}">论文发表</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <div data-options="region:'center',border:false" class="main-region">
+    <section id="profileView" class="view-panel">
+      <div class="profile-layout">
+        <section class="profile-summary">
+          <img id="avatar" class="avatar" src="https://www.jeasyui.com/easyui/themes/icons/man.png" alt="头像" onerror="this.onerror=null;this.src='https://www.jeasyui.com/easyui/themes/icons/man.png'">
+          <h1 id="profileName">加载中...</h1>
+          <p id="profileUsername"></p>
+          <p id="profileBio"></p>
+        </section>
+
+        <section class="profile-detail">
+          <table id="profileGrid" class="easyui-propertygrid" data-options="showGroup:false,scrollbarSize:0"></table>
+        </section>
       </div>
     </section>
 
-    <section class="auth-panel">
-      <div id="authTabs" class="easyui-tabs" data-options="fit:true,border:false">
-        <div title="登录" class="tab-body">
-          <form id="loginForm" class="form-grid">
-            <input class="easyui-textbox" name="username" label="用户名" labelPosition="top" data-options="required:true">
-            <input class="easyui-passwordbox" name="password" label="密码" labelPosition="top" data-options="required:true">
-            <a href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-ok'" onclick="login()">登录</a>
-          </form>
+    <section id="papersView" class="view-panel hidden">
+      <div class="module-header">
+        <div>
+          <h1>论文发表</h1>
+          <p>管理当前账号已经发表或待见刊的论文成果。</p>
         </div>
-        <div title="注册" class="tab-body">
-          <form id="registerForm" class="form-grid">
-            <input class="easyui-textbox" name="username" label="用户名" labelPosition="top" data-options="required:true,validType:'length[3,50]'">
-            <input class="easyui-textbox" name="full_name" label="姓名" labelPosition="top">
-            <input class="easyui-textbox" name="email" label="邮箱" labelPosition="top" data-options="required:true,validType:'email'">
-            <input class="easyui-passwordbox" name="password" label="密码" labelPosition="top" data-options="required:true,validType:'length[6,128]'">
-            <a href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-save'" onclick="registerUser()">注册并登录</a>
-          </form>
-        </div>
+        <span id="selectedCount">已勾选 0 篇</span>
       </div>
+
+      <div id="paperToolbar" class="paper-toolbar">
+        <input id="paperKeyword" class="easyui-textbox" label="关键词" labelPosition="top" prompt="期刊名、出版社、作者">
+        <input id="paperStartDate" class="easyui-datebox" label="开始时间" labelPosition="top" data-options="editable:false">
+        <input id="paperEndDate" class="easyui-datebox" label="结束时间" labelPosition="top" data-options="editable:false">
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="searchPapers()">查询</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" onclick="resetPaperSearch()">重置</a>
+        <span class="toolbar-spacer"></span>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="openPaperDialog()">新增</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-edit'" onclick="editSelectedPaper()">编辑</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-remove'" onclick="deleteSelectedPaper()">删除</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-save'" onclick="exportSelectedPapers()">导出勾选</a>
+      </div>
+
+      <table id="paperGrid"></table>
     </section>
   </div>
 
-  <div id="homeDialog" class="easyui-dialog" title="登录成功" data-options="closed:true,modal:true,width:420,height:260">
-    <div class="user-card">
-      <h2 id="welcomeTitle">欢迎</h2>
-      <p id="welcomeMeta"></p>
-      <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="logout()">退出登录</a>
-    </div>
+  <div id="paperDialog" class="easyui-dialog paper-dialog" title="论文信息" data-options="closed:true,modal:true,width:760,height:620">
+    <form id="paperForm" class="paper-form">
+      <input type="hidden" name="id">
+      <div class="form-two-col">
+        <input class="easyui-textbox" name="title" label="标题" labelPosition="top" data-options="required:true">
+        <input class="easyui-textbox" name="journal_name" label="期刊名" labelPosition="top" data-options="required:true">
+        <input class="easyui-textbox" name="publisher" label="出版社" labelPosition="top">
+        <input class="easyui-combobox" name="sci_partition" label="SCI分区" labelPosition="top" data-options="panelHeight:'auto',editable:true,valueField:'value',textField:'text',data:[{value:'Q1',text:'Q1'},{value:'Q2',text:'Q2'},{value:'Q3',text:'Q3'},{value:'Q4',text:'Q4'}]">
+        <input class="easyui-combobox" name="cug_partition" label="地大分区" labelPosition="top" data-options="panelHeight:'auto',editable:true,valueField:'value',textField:'text',data:[{value:'A+',text:'A+'},{value:'A',text:'A'},{value:'B+',text:'B+'},{value:'B',text:'B'},{value:'C',text:'C'}]">
+        <input class="easyui-textbox" name="corresponding_author" label="通讯作者" labelPosition="top">
+        <input class="easyui-textbox" name="first_author" label="第一作者" labelPosition="top">
+        <input class="easyui-datebox" name="publish_date" label="发表时间" labelPosition="top" data-options="editable:false">
+        <select class="easyui-combobox" name="is_published" label="是否见刊" labelPosition="top" data-options="panelHeight:'auto'">
+          <option value="1">是</option>
+          <option value="0">否</option>
+        </select>
+        <input class="easyui-textbox" name="download_url" label="下载地址" labelPosition="top">
+      </div>
+
+      <div class="tag-section">
+        <label>全部作者</label>
+        <div id="authorTags" class="tag-box"></div>
+        <div class="tag-input-row">
+          <input id="authorInput" class="easyui-textbox" prompt="输入作者后点击添加">
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="addAuthorTag()">添加作者</a>
+        </div>
+      </div>
+
+      <div class="tag-section">
+        <label>机构列表</label>
+        <div id="institutionTags" class="tag-box"></div>
+        <div class="tag-input-row">
+          <input id="institutionInput" class="easyui-textbox" prompt="输入机构后点击添加">
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="addInstitutionTag()">添加机构</a>
+        </div>
+      </div>
+
+      <div class="file-row">
+        <label for="paperFile">上传文件</label>
+        <input id="paperFile" type="file">
+        <span id="currentFile"></span>
+      </div>
+
+      <div class="dialog-actions">
+        <a href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-save'" onclick="savePaper()">保存</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="$('#paperDialog').dialog('close')">取消</a>
+      </div>
+    </form>
   </div>
 
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
