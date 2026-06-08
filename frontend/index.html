@@ -6,6 +6,7 @@
   <title>课题组信息管理系统</title>
   <link rel="stylesheet" href="https://www.jeasyui.com/easyui/themes/default/easyui.css">
   <link rel="stylesheet" href="https://www.jeasyui.com/easyui/themes/icon.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body class="easyui-layout page-home">
@@ -14,7 +15,17 @@
       <strong>课题组信息管理系统</strong>
       <span id="topbarUser">加载中...</span>
     </div>
-    <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="logout()">退出登录</a>
+    <button type="button" class="account-trigger" onmouseenter="showAccountMenu(event)">
+      <img id="topbarAvatar" src="https://www.jeasyui.com/easyui/themes/icons/man.png" alt="头像" onerror="this.onerror=null;this.src='https://www.jeasyui.com/easyui/themes/icons/man.png'">
+    </button>
+  </div>
+  <div id="accountMenu" class="easyui-menu account-menu" data-options="onClick:handleAccountMenuClick" onmouseleave="$(this).menu('hide')">
+    <div data-options="name:'profile',iconCls:'icon-man'">个人信息</div>
+    <div data-options="name:'editProfile',iconCls:'icon-edit'">编辑资料</div>
+    <div data-options="name:'password',iconCls:'icon-lock'">密码修改</div>
+    <div data-options="name:'avatar',iconCls:'icon-man'">修改头像</div>
+    <div class="menu-sep"></div>
+    <div data-options="name:'logout',iconCls:'icon-cancel'">退出登录</div>
   </div>
 
   <div data-options="region:'west',split:true,title:'功能菜单'" class="sidebar">
@@ -23,57 +34,412 @@
         <span>个人中心</span>
         <ul>
           <li data-options="attributes:{view:'profile'}">个人信息</li>
+          <li data-options="attributes:{view:'members'}">课题组成员</li>
         </ul>
       </li>
       <li>
         <span>成果管理</span>
         <ul>
-          <li data-options="attributes:{view:'papers'}">论文发表</li>
+          <li data-options="attributes:{view:'papers'}">我的论文</li>
+          <li data-options="attributes:{view:'sharedPapers'}">其他论文</li>
+          <li data-options="attributes:{view:'resources'}">资料共享</li>
+        </ul>
+      </li>
+      <li>
+        <span>活动管理</span>
+        <ul>
+          <li data-options="attributes:{view:'activities'}">课题组活动</li>
+          <li data-options="attributes:{view:'meetings'}">组会</li>
+        </ul>
+      </li>
+      <li>
+        <span>出差报销</span>
+        <ul>
+          <li data-options="attributes:{view:'travelStandards'}">报销标准</li>
+        </ul>
+      </li>
+      <li id="adminMenuNode" class="hidden">
+        <span>后台管理</span>
+        <ul>
+          <li data-options="attributes:{view:'adminUsers'}">用户管理</li>
+          <li data-options="attributes:{view:'adminPapers'}">论文管理</li>
         </ul>
       </li>
     </ul>
   </div>
 
   <div data-options="region:'center',border:false" class="main-region">
+    <div id="breadcrumb" class="breadcrumb">个人中心 / 个人信息</div>
     <section id="profileView" class="view-panel">
-      <div class="profile-layout">
-        <section class="profile-summary">
-          <img id="avatar" class="avatar" src="https://www.jeasyui.com/easyui/themes/icons/man.png" alt="头像" onerror="this.onerror=null;this.src='https://www.jeasyui.com/easyui/themes/icons/man.png'">
-          <h1 id="profileName">加载中...</h1>
-          <p id="profileUsername"></p>
-          <p id="profileBio"></p>
+      <div class="resume-shell">
+        <section class="resume-head">
+          <div class="resume-identity">
+            <img id="profileAvatar" class="resume-avatar" src="https://www.jeasyui.com/easyui/themes/icons/man.png" alt="头像" onerror="this.onerror=null;this.src='https://www.jeasyui.com/easyui/themes/icons/man.png'">
+            <div class="resume-title">
+              <h1 id="profileName">加载中...</h1>
+              <p id="profileMeta"></p>
+              <p id="profileBio"></p>
+            </div>
+          </div>
+          <div class="resume-head-skill">
+            <div id="profileSkillChart" class="skill-chart compact-skill-chart"></div>
+          </div>
+          <input id="avatarFile" type="file" accept="image/*" class="hidden-file" onchange="uploadAvatar()">
         </section>
 
-        <section class="profile-detail">
-          <table id="profileGrid" class="easyui-propertygrid" data-options="showGroup:false,scrollbarSize:0"></table>
+        <section class="resume-body">
+          <div class="resume-block">
+            <h2>基本信息</h2>
+            <dl id="profileBasic" class="resume-grid"></dl>
+          </div>
+          <div class="resume-block">
+            <h2>教育经历</h2>
+            <dl id="profileEducation" class="resume-grid"></dl>
+          </div>
         </section>
       </div>
+    </section>
+
+    <section id="membersView" class="view-panel hidden">
+      <div class="module-header">
+        <div>
+          <h1>课题组成员</h1>
+          <p>查看课题组其他成员的公开资料和能力概况。</p>
+        </div>
+      </div>
+      <div id="memberToolbar" class="paper-toolbar">
+        <div class="toolbar-row">
+          <input id="memberKeyword" class="easyui-textbox" label="关键词" labelPosition="left" data-options="labelWidth:58">
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="searchMembers()">查询</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" onclick="resetMemberSearch()">重置</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-save'" onclick="openUserExportDialog()">导出成员</a>
+        </div>
+      </div>
+      <table id="memberGrid"></table>
     </section>
 
     <section id="papersView" class="view-panel hidden">
       <div class="module-header">
         <div>
-          <h1>论文发表</h1>
+          <h1>我的论文</h1>
           <p>管理当前账号已经发表或待见刊的论文成果。</p>
         </div>
         <span id="selectedCount">已勾选 0 篇</span>
       </div>
 
       <div id="paperToolbar" class="paper-toolbar">
-        <input id="paperKeyword" class="easyui-textbox" label="关键词" labelPosition="top" prompt="期刊名、出版社、作者">
-        <input id="paperStartDate" class="easyui-datebox" label="开始时间" labelPosition="top" data-options="editable:false">
-        <input id="paperEndDate" class="easyui-datebox" label="结束时间" labelPosition="top" data-options="editable:false">
-        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="searchPapers()">查询</a>
-        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" onclick="resetPaperSearch()">重置</a>
-        <span class="toolbar-spacer"></span>
-        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="openPaperDialog()">新增</a>
-        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-edit'" onclick="editSelectedPaper()">编辑</a>
-        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-remove'" onclick="deleteSelectedPaper()">删除</a>
-        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-save'" onclick="exportSelectedPapers()">导出勾选</a>
+        <div class="toolbar-row">
+          <input id="paperKeyword" class="easyui-textbox" label="关键词" labelPosition="left" data-options="labelWidth:58">
+          <input id="paperStartDate" class="easyui-datebox" label="开始日期" labelPosition="left" data-options="editable:false,labelWidth:72">
+          <input id="paperEndDate" class="easyui-datebox" label="结束日期" labelPosition="left" data-options="editable:false,labelWidth:72">
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="searchPapers()">查询</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" onclick="resetPaperSearch()">重置</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="openPaperDialog()">创建</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-edit'" onclick="editSelectedPaper()">编辑</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-remove'" onclick="deleteSelectedPaper()">删除</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-save'" onclick="exportSelectedPapers()">导出勾选</a>
+        </div>
       </div>
 
       <table id="paperGrid"></table>
     </section>
+
+    <section id="sharedPapersView" class="view-panel hidden">
+      <div class="module-header">
+        <div>
+          <h1>其他论文</h1>
+          <p>查看课题组成员共享的论文信息，可按关键词、作者和发表日期查询。</p>
+        </div>
+      </div>
+
+      <div id="sharedPaperToolbar" class="paper-toolbar">
+        <div class="toolbar-row">
+          <input id="sharedPaperKeyword" class="easyui-textbox" label="关键词" labelPosition="left" data-options="labelWidth:58">
+          <input id="sharedPaperAuthor" class="easyui-textbox" label="作者" labelPosition="left" data-options="labelWidth:46">
+          <input id="sharedPaperStartDate" class="easyui-datebox" label="开始日期" labelPosition="left" data-options="editable:false,labelWidth:72">
+          <input id="sharedPaperEndDate" class="easyui-datebox" label="结束日期" labelPosition="left" data-options="editable:false,labelWidth:72">
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="searchSharedPapers()">查询</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" onclick="resetSharedPaperSearch()">重置</a>
+        </div>
+      </div>
+
+      <table id="sharedPaperGrid"></table>
+    </section>
+
+    <section id="activitiesView" class="view-panel hidden">
+      <div class="module-header">
+        <div>
+          <h1>课题组活动</h1>
+          <p>记录和浏览课题组组织过的学术研讨、讲座、团建和比赛等活动。</p>
+        </div>
+      </div>
+
+      <div id="activityToolbar" class="paper-toolbar">
+        <div class="toolbar-row">
+          <input id="activityKeyword" class="easyui-textbox" label="关键字" labelPosition="left" data-options="labelWidth:58">
+          <input id="activityPublisher" class="easyui-textbox" label="发布人" labelPosition="left" data-options="labelWidth:58">
+          <input id="activityStartDate" class="easyui-datebox" label="开始日期" labelPosition="left" data-options="editable:false,labelWidth:72">
+          <input id="activityEndDate" class="easyui-datebox" label="结束日期" labelPosition="left" data-options="editable:false,labelWidth:72">
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="searchActivities()">查询</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" onclick="resetActivitySearch()">重置</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="openActivityDialog()">创建活动</a>
+          <a id="btnEditActivity" href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-edit'" onclick="editSelectedActivity()">编辑</a>
+          <a id="btnDeleteActivity" href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-remove'" onclick="deleteSelectedActivity()">删除</a>
+        </div>
+      </div>
+
+      <table id="activityGrid"></table>
+    </section>
+
+    <section id="meetingsView" class="view-panel hidden">
+      <div class="module-header">
+        <div>
+          <h1>组会</h1>
+          <p>记录组会时间、参会人员、主讲人、分享题目和相关材料。</p>
+        </div>
+      </div>
+
+      <div id="meetingToolbar" class="paper-toolbar">
+        <div class="toolbar-row">
+          <input id="meetingKeyword" class="easyui-textbox" label="关键字" labelPosition="left" data-options="labelWidth:58">
+          <input id="meetingSpeakerSearch" class="easyui-combobox" label="主讲人" labelPosition="left" data-options="multiple:true,editable:false,valueField:'value',textField:'label',panelHeight:240,labelWidth:58">
+          <input id="meetingStartDate" class="easyui-datebox" label="开始日期" labelPosition="left" data-options="editable:false,labelWidth:72">
+          <input id="meetingEndDate" class="easyui-datebox" label="结束日期" labelPosition="left" data-options="editable:false,labelWidth:72">
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="searchMeetings()">查询</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" onclick="resetMeetingSearch()">重置</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="openMeetingDialog()">创建组会</a>
+          <a id="btnEditMeeting" href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-edit'" onclick="editSelectedMeeting()">编辑</a>
+          <a id="btnDeleteMeeting" href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-remove'" onclick="deleteSelectedMeeting()">删除</a>
+        </div>
+      </div>
+
+      <table id="meetingGrid"></table>
+    </section>
+
+    <section id="resourcesView" class="view-panel hidden">
+      <div class="module-header">
+        <div>
+          <h1>资料共享</h1>
+          <p>创建和浏览组内同学分享的成果、知识、文章、资料与经验。</p>
+        </div>
+      </div>
+
+      <div id="resourceToolbar" class="paper-toolbar">
+        <div class="toolbar-row">
+          <input id="resourceKeyword" class="easyui-textbox" label="关键词" labelPosition="left" data-options="labelWidth:58">
+          <select id="resourceTypeSearch" class="easyui-combobox" label="类型" labelPosition="left" data-options="panelHeight:260,editable:false,valueField:'value',textField:'label',labelWidth:46">
+            <option value="">全部</option>
+          </select>
+          <input id="resourceTagSearch" class="easyui-textbox" label="标签" labelPosition="left" data-options="labelWidth:46">
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="searchResources()">查询</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" onclick="resetResourceSearch()">重置</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="openResourceDialog()">创建资料</a>
+          <a id="btnEditResource" href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-edit'" onclick="editSelectedResource()">编辑</a>
+          <a id="btnDeleteResource" href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-remove'" onclick="deleteSelectedResource()">删除</a>
+        </div>
+      </div>
+
+      <table id="resourceGrid"></table>
+    </section>
+
+    <section id="travelStandardsView" class="view-panel hidden">
+      <div class="module-header">
+        <div>
+          <h1>报销标准</h1>
+          <p>查看差旅住宿费标准明细，并可下载原始 Excel 文件。全体人员均为其他人员。</p>
+        </div>
+      </div>
+
+      <div id="travelStandardToolbar" class="paper-toolbar">
+        <div class="toolbar-row">
+          <a id="travelStandardDownload" href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-save'" onclick="downloadTravelStandards()">下载文件</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-reload'" onclick="loadTravelStandards()">刷新</a>
+        </div>
+      </div>
+
+      <table id="travelStandardGrid"></table>
+    </section>
+
+    <section id="adminUsersView" class="view-panel hidden">
+      <div class="module-header">
+        <div>
+          <h1>用户管理</h1>
+          <p>管理员可查看全部用户，并为成员重设登录密码。</p>
+        </div>
+      </div>
+      <div id="adminUserToolbar" class="paper-toolbar">
+        <div class="toolbar-row">
+          <input id="adminUserKeyword" class="easyui-textbox" label="关键词" labelPosition="left" data-options="labelWidth:58">
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="searchAdminUsers()">查询</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" onclick="resetAdminUserSearch()">重置</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="openAdminUserDialog()">创建</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-edit'" onclick="editSelectedAdminUser()">编辑</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-remove'" onclick="deleteSelectedAdminUser()">删除</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-lock'" onclick="openAdminResetPasswordDialog()">重设密码</a>
+        </div>
+      </div>
+      <table id="adminUserGrid"></table>
+    </section>
+
+    <section id="adminPapersView" class="view-panel hidden">
+      <div class="module-header">
+        <div>
+          <h1>论文管理</h1>
+          <p>管理员可查看、编辑和删除全部成员的论文信息。</p>
+        </div>
+      </div>
+      <div id="adminPaperToolbar" class="paper-toolbar">
+        <div class="toolbar-row">
+          <input id="adminPaperKeyword" class="easyui-textbox" label="关键词" labelPosition="left" data-options="labelWidth:58">
+          <input id="adminPaperAuthor" class="easyui-textbox" label="作者" labelPosition="left" data-options="labelWidth:46">
+          <input id="adminPaperStartDate" class="easyui-datebox" label="开始日期" labelPosition="left" data-options="editable:false,labelWidth:72">
+          <input id="adminPaperEndDate" class="easyui-datebox" label="结束日期" labelPosition="left" data-options="editable:false,labelWidth:72">
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="searchAdminPapers()">查询</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" onclick="resetAdminPaperSearch()">重置</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-edit'" onclick="editSelectedAdminPaper()">编辑</a>
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-remove'" onclick="deleteSelectedAdminPaper()">删除</a>
+        </div>
+      </div>
+      <table id="adminPaperGrid"></table>
+    </section>
+  </div>
+
+  <div id="profileDialog" class="easyui-dialog paper-dialog" title="编辑个人资料" data-options="closed:true,modal:true,width:820,height:650">
+    <form id="profileForm" class="paper-form" style="padding: 15px;">
+      <div class="form-two-col">
+        <input class="easyui-textbox" name="full_name" label="真实姓名" labelPosition="top" data-options="required:true">
+        <input class="easyui-textbox" name="telephone" label="电话" labelPosition="top">
+        <input class="easyui-textbox" name="province" label="省份" labelPosition="top">
+        <input class="easyui-textbox" name="city" label="城市" labelPosition="top">
+        <input class="easyui-datebox" name="birthday" label="生日" labelPosition="top" data-options="editable:false">
+        <input class="easyui-numberspinner" name="enrollment_year" label="入学年份" labelPosition="top" data-options="min:1900,max:2100">
+        <input class="easyui-numberspinner" name="graduation_year" label="毕业年份" labelPosition="top" data-options="min:1900,max:2100">
+        <select class="easyui-combobox" name="is_graduated" label="是否毕业" labelPosition="top" data-options="panelHeight:'auto',editable:false">
+          <option value="0">否</option>
+          <option value="1">是</option>
+        </select>
+        <input class="easyui-textbox" name="undergraduate_school" label="本科院校" labelPosition="top">
+        <input class="easyui-textbox" name="master_school" label="硕士院校" labelPosition="top">
+        <input class="easyui-textbox" name="doctoral_school" label="博士院校" labelPosition="top">
+      </div>
+      <input class="easyui-textbox" name="bio" label="个人说明" labelPosition="top" data-options="multiline:true" style="width: 100%; height: 90px; margin-top: 12px;">
+      <div class="skill-form">
+        <label>个人擅长</label>
+        <div class="skill-form-grid">
+          <input class="easyui-numberspinner" name="skill_petroleum_engineering" label="数模" labelPosition="left" data-options="min:0,max:100,labelWidth:76">
+          <input class="easyui-numberspinner" name="skill_mathematics" label="写作" labelPosition="left" data-options="min:0,max:100,labelWidth:76">
+          <input class="easyui-numberspinner" name="skill_ai_tools" label="AI" labelPosition="left" data-options="min:0,max:100,labelWidth:76">
+          <input class="easyui-numberspinner" name="skill_coding" label="汇报" labelPosition="left" data-options="min:0,max:100,labelWidth:76">
+          <input class="easyui-numberspinner" name="skill_presentation" label="外语" labelPosition="left" data-options="min:0,max:100,labelWidth:76">
+          <input class="easyui-numberspinner" name="skill_organization" label="比赛" labelPosition="left" data-options="min:0,max:100,labelWidth:76">
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <a href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-save'" onclick="saveProfile()">保存</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="$('#profileDialog').dialog('close')">取消</a>
+      </div>
+    </form>
+  </div>
+
+  <div id="passwordDialog" class="easyui-dialog paper-dialog" title="修改密码" data-options="closed:true,modal:true,width:420,height:320">
+    <form id="passwordForm" class="paper-form" style="padding: 18px;">
+      <input class="easyui-passwordbox" name="old_password" label="原密码" labelPosition="top" data-options="required:true" style="width: 100%; margin-bottom: 12px;">
+      <input class="easyui-passwordbox" name="new_password" label="新密码" labelPosition="top" data-options="required:true" style="width: 100%; margin-bottom: 12px;">
+      <input class="easyui-passwordbox" name="confirm_password" label="确认密码" labelPosition="top" data-options="required:true" style="width: 100%; margin-bottom: 12px;">
+      <div class="dialog-actions">
+        <a href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-save'" onclick="savePassword()">保存</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="$('#passwordDialog').dialog('close')">取消</a>
+      </div>
+    </form>
+  </div>
+
+  <div id="adminUserDialog" class="easyui-dialog paper-dialog" title="用户信息" data-options="closed:true,modal:true,width:820,height:650">
+    <form id="adminUserForm" class="paper-form" style="padding: 15px;">
+      <input type="hidden" name="id">
+      <div class="form-two-col">
+        <input id="adminUsername" class="easyui-textbox" name="username" label="账号" labelPosition="top" data-options="required:true,validType:'length[3,50]'">
+        <input class="easyui-textbox" name="full_name" label="真实姓名" labelPosition="top" data-options="required:true">
+        <input id="adminUserPassword" class="easyui-passwordbox" name="password" label="初始密码" labelPosition="top" data-options="required:true,validType:'length[6,128]'">
+        <input class="easyui-textbox" name="telephone" label="电话" labelPosition="top">
+        <input class="easyui-textbox" name="province" label="省份" labelPosition="top">
+        <input class="easyui-textbox" name="city" label="城市" labelPosition="top">
+        <input class="easyui-datebox" name="birthday" label="生日" labelPosition="top" data-options="editable:false">
+        <input class="easyui-numberspinner" name="enrollment_year" label="入学年份" labelPosition="top" data-options="min:1900,max:2100">
+        <input class="easyui-numberspinner" name="graduation_year" label="毕业年份" labelPosition="top" data-options="min:1900,max:2100">
+        <select class="easyui-combobox" name="is_graduated" label="是否毕业" labelPosition="top" data-options="panelHeight:'auto',editable:false">
+          <option value="0">否</option>
+          <option value="1">是</option>
+        </select>
+        <input class="easyui-textbox" name="undergraduate_school" label="本科院校" labelPosition="top">
+        <input class="easyui-textbox" name="master_school" label="硕士院校" labelPosition="top">
+        <input class="easyui-textbox" name="doctoral_school" label="博士院校" labelPosition="top">
+      </div>
+      <input class="easyui-textbox" name="bio" label="个人说明" labelPosition="top" data-options="multiline:true" style="width: 100%; height: 90px; margin-top: 12px;">
+      <div class="skill-form">
+        <label>个人擅长</label>
+        <div class="skill-form-grid">
+          <input class="easyui-numberspinner" name="skill_petroleum_engineering" label="数模" labelPosition="left" data-options="min:0,max:100,labelWidth:76">
+          <input class="easyui-numberspinner" name="skill_mathematics" label="写作" labelPosition="left" data-options="min:0,max:100,labelWidth:76">
+          <input class="easyui-numberspinner" name="skill_ai_tools" label="AI" labelPosition="left" data-options="min:0,max:100,labelWidth:76">
+          <input class="easyui-numberspinner" name="skill_coding" label="汇报" labelPosition="left" data-options="min:0,max:100,labelWidth:76">
+          <input class="easyui-numberspinner" name="skill_presentation" label="外语" labelPosition="left" data-options="min:0,max:100,labelWidth:76">
+          <input class="easyui-numberspinner" name="skill_organization" label="比赛" labelPosition="left" data-options="min:0,max:100,labelWidth:76">
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <a href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-save'" onclick="saveAdminUser()">保存</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="$('#adminUserDialog').dialog('close')">取消</a>
+      </div>
+    </form>
+  </div>
+
+  <div id="adminResetPasswordDialog" class="easyui-dialog paper-dialog" title="重设密码" data-options="closed:true,modal:true,width:420,height:260">
+    <form id="adminResetPasswordForm" class="paper-form" style="padding: 18px;">
+      <input type="hidden" name="user_id">
+      <input class="easyui-textbox" name="full_name" label="成员" labelPosition="top" data-options="readonly:true" style="width: 100%; margin-bottom: 12px;">
+      <input class="easyui-passwordbox" name="new_password" label="新密码" labelPosition="top" data-options="required:true" style="width: 100%; margin-bottom: 12px;">
+      <input class="easyui-passwordbox" name="confirm_password" label="确认密码" labelPosition="top" data-options="required:true" style="width: 100%; margin-bottom: 12px;">
+      <div class="dialog-actions">
+        <a href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-save'" onclick="adminResetPassword()">保存</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="$('#adminResetPasswordDialog').dialog('close')">取消</a>
+      </div>
+    </form>
+  </div>
+
+  <div id="memberProfileDialog" class="easyui-dialog paper-dialog" title="成员资料" data-options="closed:true,modal:true,width:900,height:680">
+    <div class="resume-shell member-resume">
+      <section class="resume-head">
+        <img id="memberAvatar" class="resume-avatar" src="https://www.jeasyui.com/easyui/themes/icons/man.png" alt="头像" onerror="this.onerror=null;this.src='https://www.jeasyui.com/easyui/themes/icons/man.png'">
+        <div class="resume-title">
+          <h1 id="memberName"></h1>
+          <p id="memberMeta"></p>
+          <p id="memberBio"></p>
+        </div>
+      </section>
+      <section class="resume-body">
+        <div class="resume-block">
+          <h2>基本信息</h2>
+          <dl id="memberBasic" class="resume-grid"></dl>
+        </div>
+        <div class="resume-block">
+          <h2>教育经历</h2>
+          <dl id="memberEducation" class="resume-grid"></dl>
+        </div>
+        <div class="resume-block skill-block">
+          <div id="memberSkillChart" class="skill-chart"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="userExportDialog" class="easyui-dialog paper-dialog" title="导出成员信息" data-options="closed:true,modal:true,width:560,height:460">
+    <div class="export-dialog-body">
+      <div id="userExportColumns" class="export-column-grid"></div>
+      <div class="dialog-actions">
+        <a href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-save'" onclick="exportUsers()">导出</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="$('#userExportDialog').dialog('close')">取消</a>
+      </div>
+    </div>
   </div>
 
   <div id="paperDialog" class="easyui-dialog paper-dialog" title="论文信息" data-options="closed:true,modal:true,width:760,height:620">
@@ -83,8 +449,14 @@
         <input class="easyui-textbox" name="title" label="标题" labelPosition="top" data-options="required:true">
         <input class="easyui-textbox" name="journal_name" label="期刊名" labelPosition="top" data-options="required:true">
         <input class="easyui-textbox" name="publisher" label="出版社" labelPosition="top">
-        <input class="easyui-combobox" name="sci_partition" label="SCI分区" labelPosition="top" data-options="panelHeight:'auto',editable:true,valueField:'value',textField:'text',data:[{value:'Q1',text:'Q1'},{value:'Q2',text:'Q2'},{value:'Q3',text:'Q3'},{value:'Q4',text:'Q4'}]">
-        <input class="easyui-combobox" name="cug_partition" label="地大分区" labelPosition="top" data-options="panelHeight:'auto',editable:true,valueField:'value',textField:'text',data:[{value:'A+',text:'A+'},{value:'A',text:'A'},{value:'B+',text:'B+'},{value:'B',text:'B'},{value:'C',text:'C'}]">
+        <select id="paperLanguage" class="easyui-combobox" name="language" label="语种" labelPosition="top" data-options="required:true,panelHeight:'auto',editable:false,onChange:onPaperClassificationChange">
+          <option value="英文">英文</option>
+          <option value="中文">中文</option>
+        </select>
+        <select id="paperCategory" class="easyui-combobox" name="publication_category" label="类型" labelPosition="top" data-options="required:true,panelHeight:'auto',editable:false,onChange:onPaperClassificationChange"></select>
+        <select id="paperSubtype" class="easyui-combobox" name="publication_subtype" label="子类型" labelPosition="top" data-options="panelHeight:'auto',editable:false"></select>
+        <input id="paperSciPartition" class="easyui-combobox" name="sci_partition" label="SCI分区" labelPosition="top" data-options="panelHeight:'auto',editable:false,valueField:'value',textField:'text',data:[{value:'1区',text:'1区'},{value:'2区',text:'2区'},{value:'3区',text:'3区'},{value:'4区',text:'4区'}]">
+        <input id="paperCugPartition" class="easyui-combobox" name="cug_partition" label="地大分区" labelPosition="top" data-options="panelHeight:'auto',editable:false,valueField:'value',textField:'text',data:[{value:'1区',text:'1区'},{value:'2区',text:'2区'},{value:'3区',text:'3区'},{value:'4区',text:'4区'}]">
         <input class="easyui-textbox" name="corresponding_author" label="通讯作者" labelPosition="top">
         <input class="easyui-textbox" name="first_author" label="第一作者" labelPosition="top">
         <input class="easyui-datebox" name="publish_date" label="发表时间" labelPosition="top" data-options="editable:false">
@@ -99,7 +471,7 @@
         <label>全部作者</label>
         <div id="authorTags" class="tag-box"></div>
         <div class="tag-input-row">
-          <input id="authorInput" class="easyui-textbox" prompt="输入作者后点击添加">
+          <input id="authorInput" class="easyui-textbox tag-textarea" data-options="multiline:true" prompt="粘贴作者或输入单个作者">
           <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="addAuthorTag()">添加作者</a>
         </div>
       </div>
@@ -108,7 +480,7 @@
         <label>机构列表</label>
         <div id="institutionTags" class="tag-box"></div>
         <div class="tag-input-row">
-          <input id="institutionInput" class="easyui-textbox" prompt="输入机构后点击添加">
+          <input id="institutionInput" class="easyui-textbox tag-textarea" data-options="multiline:true" prompt="粘贴机构或输入单个机构">
           <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="addInstitutionTag()">添加机构</a>
         </div>
       </div>
@@ -126,8 +498,140 @@
     </form>
   </div>
 
+  <div id="activityDialog" class="easyui-dialog paper-dialog" title="活动详情" data-options="closed:true,modal:true,width:800,height:650">
+    <form id="activityForm" class="paper-form" style="padding: 15px;">
+      <input type="hidden" name="id">
+      
+      <div class="form-two-col" style="margin-bottom: 10px;">
+        <input class="easyui-textbox" name="title" label="活动名称" labelPosition="top" data-options="required:true" style="width: 100%;">
+        <input class="easyui-datebox" name="publish_date" label="发布时间" labelPosition="top" data-options="required:true,editable:false" style="width: 100%;">
+      </div>
+
+      <div class="tag-section" style="margin-bottom: 10px;">
+        <label style="font-weight: bold; display: block; margin-bottom: 5px;">活动主题标签</label>
+        <div id="activityTags" class="tag-box" style="margin-bottom: 5px;"></div>
+        <div class="tag-input-row" id="tagInputRow">
+          <input id="activityTagInput" class="easyui-textbox" prompt="输入标签后点击添加" style="width: 200px;">
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="addActivityTag()">添加标签</a>
+        </div>
+      </div>
+
+      <div class="editor-section" style="margin-bottom: 10px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">活动内容</label>
+        <div id="activityEditor" style="height: 200px; background-color: #fff;"></div>
+      </div>
+
+      <div class="file-row" id="uploadPhotoRow" style="margin-bottom: 10px;">
+        <label style="font-weight: bold; display: block; margin-bottom: 5px;">上传照片（限5张，单张最大5MB）</label>
+        <input id="activityImageFiles" type="file" multiple accept="image/*" onchange="previewNewImages()">
+      </div>
+
+      <div class="image-preview-section" id="newActivityImagePreviewSection" style="margin-bottom: 15px;">
+        <label style="font-weight: bold; display: block; margin-bottom: 5px;">待上传照片</label>
+        <div id="newActivityImagesContainer" class="activity-images-grid"></div>
+      </div>
+
+      <div class="image-preview-section" style="margin-bottom: 15px;">
+        <label style="font-weight: bold; display: block; margin-bottom: 5px;">已关联照片</label>
+        <div id="activityImagesContainer" class="activity-images-grid"></div>
+      </div>
+
+      <div class="dialog-actions">
+        <a id="btnSaveActivity" href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-save'" onclick="saveActivity()">保存</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="$('#activityDialog').dialog('close')">取消</a>
+      </div>
+    </form>
+  </div>
+
+  <div id="meetingDialog" class="easyui-dialog paper-dialog" title="组会详情" data-options="closed:true,modal:true,width:820,height:650">
+    <form id="meetingForm" class="paper-form" style="padding: 15px;">
+      <input type="hidden" name="id">
+
+      <div class="form-two-col" style="margin-bottom: 10px;">
+        <input class="easyui-datebox" name="meeting_date" label="组会时间" labelPosition="top" data-options="required:true,editable:false" style="width: 100%;">
+        <input id="meetingSpeakerInput" class="easyui-combobox" name="speaker" label="主讲人" labelPosition="top" data-options="required:true,editable:false,valueField:'value',textField:'label',panelHeight:220" style="width: 100%;">
+      </div>
+
+      <input class="easyui-textbox" name="topic" label="分享题目" labelPosition="top" data-options="required:true" style="width: 100%; margin-bottom: 10px;">
+
+      <div class="tag-section">
+        <label>参会人员</label>
+        <input id="meetingAttendeesInput" class="easyui-combobox" labelPosition="top" data-options="multiple:true,editable:false,valueField:'value',textField:'label',panelHeight:240" style="width: 100%;">
+      </div>
+
+      <div class="file-row" id="meetingDocumentUploadRow">
+        <label>上传文档（PPT、Word、PDF 等，不限制大小）</label>
+        <input id="meetingDocumentFiles" type="file" multiple>
+      </div>
+
+      <div class="file-list-section">
+        <label>已上传文档</label>
+        <div id="meetingDocumentsContainer" class="meeting-file-list"></div>
+      </div>
+
+      <div class="file-row" id="meetingPhotoUploadRow">
+        <label>上传照片（不限制大小）</label>
+        <input id="meetingPhotoFiles" type="file" multiple accept="image/*">
+      </div>
+
+      <div class="image-preview-section">
+        <label>已上传照片</label>
+        <div id="meetingPhotosContainer" class="activity-images-grid"></div>
+      </div>
+
+      <div class="dialog-actions">
+        <a id="btnSaveMeeting" href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-save'" onclick="saveMeeting()">保存</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="$('#meetingDialog').dialog('close')">取消</a>
+      </div>
+    </form>
+  </div>
+
+  <div id="resourceDialog" class="easyui-dialog paper-dialog" title="资料详情" data-options="closed:true,modal:true,width:900,height:700">
+    <form id="resourceForm" class="paper-form resource-form" style="padding: 15px;">
+      <input type="hidden" name="id">
+
+      <div class="form-two-col" style="margin-bottom: 10px;">
+        <input class="easyui-textbox" name="title" label="标题" labelPosition="top" data-options="required:true" style="width: 100%;">
+        <select id="resourceTypeInput" class="easyui-combobox" name="resource_type" label="类型" labelPosition="top" data-options="required:true,editable:false,valueField:'value',textField:'label',panelHeight:260" style="width: 100%;"></select>
+      </div>
+
+      <div id="resourceMeta" class="resource-meta"></div>
+
+      <div class="tag-section" style="margin-bottom: 10px;">
+        <label>标签</label>
+        <div id="resourceTags" class="tag-box" style="margin-bottom: 5px;"></div>
+        <div class="tag-input-row" id="resourceTagInputRow">
+          <input id="resourceTagInput" class="easyui-textbox" prompt="输入标签后点击添加">
+          <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="addResourceTag()">添加标签</a>
+        </div>
+      </div>
+
+      <div class="editor-section" style="margin-bottom: 10px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">内容</label>
+        <div id="resourceEditor" class="quill-editor"></div>
+      </div>
+
+      <div class="dialog-actions">
+        <a id="btnSaveResource" href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-save'" onclick="saveResource()">保存</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" onclick="$('#resourceDialog').dialog('close')">取消</a>
+      </div>
+
+      <div id="resourceCommentsSection" class="comments-section hidden">
+        <h2>评论</h2>
+        <div id="resourceComments" class="comment-list"></div>
+        <div class="comment-input-row">
+          <input id="resourceCommentInput" class="easyui-textbox" data-options="multiline:true" prompt="写下你的评论">
+          <a href="javascript:void(0)" class="easyui-linkbutton primary-action" data-options="iconCls:'icon-add'" onclick="submitResourceComment()">发表评论</a>
+        </div>
+      </div>
+    </form>
+  </div>
+
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://www.jeasyui.com/easyui/jquery.easyui.min.js"></script>
+  <script src="https://www.jeasyui.com/easyui/locale/easyui-lang-zh_CN.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

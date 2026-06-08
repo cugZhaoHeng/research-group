@@ -14,7 +14,7 @@ SQLite 数据库文件会自动创建为 `research_group.db`。
 
 ## 接口
 
-- `POST /api/auth/register`：注册
+- 注册已关闭，账号由管理员统一维护。
 - `POST /api/auth/login`：登录
 - `GET /api/auth/me`：获取当前登录用户
 - `GET /api/health`：健康检查
